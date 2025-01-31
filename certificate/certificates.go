@@ -53,8 +53,9 @@ type Resource struct {
 
 // ObtainRequest The request to obtain certificate.
 //
-// The first domain in domains is used for the CommonName field of the certificate,
-// all other domains are added using the Subject Alternate Names extension.
+// For "dns" and "ip" identifiers, the first identifier in identifiers is used for the CommonName
+// field of the certificate, all other identifiers are added using the Subject Alternate Names
+// extension. For "openid-federation" identifiers, only a single identifier is allowed.
 //
 // A new private key is generated for every invocation of the function Obtain.
 // If you do not want that you can supply your own private key in the privateKey parameter.

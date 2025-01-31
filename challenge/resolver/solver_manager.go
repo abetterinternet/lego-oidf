@@ -53,6 +53,12 @@ func (c *SolverManager) SetDNS01Provider(p challenge.Provider, opts ...dns01.Cha
 	return nil
 }
 
+// SetProviderForType specifies a custom solver s that can solve challenges of the given type.
+func (c *SolverManager) SetProviderForType(t challenge.Type, s solver) error {
+	c.solvers[t] = s
+	return nil
+}
+
 // Remove removes a challenge type from the available solvers.
 func (c *SolverManager) Remove(chlgType challenge.Type) {
 	delete(c.solvers, chlgType)

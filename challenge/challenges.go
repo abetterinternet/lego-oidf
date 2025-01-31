@@ -20,6 +20,10 @@ const (
 
 	// TLSALPN01 is the "tls-alpn-01" ACME challenge https://www.rfc-editor.org/rfc/rfc8737.html
 	TLSALPN01 = Type("tls-alpn-01")
+
+	// OPENIDFEDERATION01 is the "openid-federation-01" ACME challenge from
+	// https://peppelinux.github.io/draft-demarco-acme-openid-federation/draft-demarco-acme-openid-federation.html
+	OPENIDFEDERATION01 = Type("openid-federation-01")
 )
 
 func (t Type) String() string {
