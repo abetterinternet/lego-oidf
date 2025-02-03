@@ -9,15 +9,14 @@ import (
 type ChallengeService service
 
 // New Creates a challenge.
-func (c *ChallengeService) New(chlgURL string) (acme.ExtendedChallenge, error) {
+func (c *ChallengeService) New(chlgURL string, response interface{}) (acme.ExtendedChallenge, error) {
 	if chlgURL == "" {
 		return acme.ExtendedChallenge{}, errors.New("challenge[new]: empty URL")
 	}
 
-	// Challenge initiation is done by sending a JWS payload containing the trivial JSON object `{}`.
-	// We use an empty struct instance as the postJSON payload here to achieve this result.
+	// Challenge initiation is done by sending a JWS payload to the challenge URL
 	var chlng acme.ExtendedChallenge
-	resp, err := c.core.post(chlgURL, struct{}{}, &chlng)
+	resp, err := c.core.post(chlgURL, response, &chlng)
 	if err != nil {
 		return acme.ExtendedChallenge{}, err
 	}

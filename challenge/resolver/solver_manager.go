@@ -13,6 +13,7 @@ import (
 	"github.com/go-acme/lego/v4/challenge"
 	"github.com/go-acme/lego/v4/challenge/dns01"
 	"github.com/go-acme/lego/v4/challenge/http01"
+	"github.com/go-acme/lego/v4/challenge/openidfederation01"
 	"github.com/go-acme/lego/v4/challenge/tlsalpn01"
 	"github.com/go-acme/lego/v4/log"
 )
@@ -53,9 +54,13 @@ func (c *SolverManager) SetDNS01Provider(p challenge.Provider, opts ...dns01.Cha
 	return nil
 }
 
-// SetProviderForType specifies a custom solver s that can solve challenges of the given type.
-func (c *SolverManager) SetProviderForType(t challenge.Type, s solver) error {
-	c.solvers[t] = s
+// SetOpenIDFederation01Solver specifies a solver s that can solve the given
+// OpenID-Federation-01 challenge.
+func (c *SolverManager) SetOpenIDFederation01Solver(s openidfederation01.Solver) error {
+	s.Validate = validateWithChallengeResponse
+	s.ACMEAPI = c.core
+	log.Infof("setting api %+v on openidfed solver", c.core)
+	c.solvers[challenge.OPENIDFEDERATION01] = &s
 	return nil
 }
 
@@ -82,7 +87,14 @@ func (c *SolverManager) chooseSolver(authz acme.Authorization) solver {
 }
 
 func validate(core *api.Core, domain string, chlg acme.Challenge) error {
-	chlng, err := core.Challenges.New(chlg.URL)
+	// For most challenges, challenge initiation is done by sending a JWS payload containing the
+	// trivial JSON object `{}`. We use an empty struct instance as the postJSON payload here to
+	// achieve this result.
+	return validateWithChallengeResponse(core, domain, chlg, struct{}{})
+}
+
+func validateWithChallengeResponse(core *api.Core, domain string, chlg acme.Challenge, response interface{}) error {
+	chlng, err := core.Challenges.New(chlg.URL, response)
 	if err != nil {
 		return fmt.Errorf("failed to initiate challenge: %w", err)
 	}

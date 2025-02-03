@@ -185,6 +185,8 @@ func (c *Certifier) Obtain(request ObtainRequest) (*Resource, error) {
 		return nil, err
 	}
 
+	log.Infof("authzs: %+v", authz)
+
 	err = c.resolver.Solve(authz)
 	if err != nil {
 		// If any challenge fails, return. Do not generate partial SAN certificates.

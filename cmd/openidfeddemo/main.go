@@ -11,7 +11,6 @@ import (
 
 	"github.com/go-acme/lego/v4/certcrypto"
 	"github.com/go-acme/lego/v4/certificate"
-	"github.com/go-acme/lego/v4/challenge"
 	"github.com/go-acme/lego/v4/challenge/openidfederation01"
 	"github.com/go-acme/lego/v4/lego"
 	"github.com/go-acme/lego/v4/registration"
@@ -49,6 +48,9 @@ func main() {
 	config := lego.NewConfig(&myUser)
 
 	// This CA URL is configured for a local instance of Pebble.
+	// TODO(timg): this should be determined by fetching the issuer's OIDF EC and getting
+	// acme_provider from its metadata
+	// https://peppelinux.github.io/draft-demarco-acme-openid-federation/draft-demarco-acme-openid-federation.html#name-issuer-metadata
 	config.CADirURL = "https://localhost:14000/dir"
 	config.Certificate.KeyType = certcrypto.RSA2048
 
@@ -75,10 +77,11 @@ func main() {
 	// (used later when we attempt to pass challenges). Keep in mind that you still
 	// need to proxy challenge traffic to port 5002 and 5001.
 	// TODO(timg): confusion in Lego between solver vs. challenger vs. provider is messy
-	err = client.Challenge.SetProviderForType(challenge.OPENIDFEDERATION01, &openidfederation01.Challenge{})
+	err = client.Challenge.SetOpenIDFederation01Solver(openidfederation01.Solver{})
 	if err != nil {
 		log.Fatal(err)
 	}
+	log.Printf("set solver for OpenID Fed")
 
 	// New users will need to register
 	reg, err := client.Registration.Register(registration.RegisterOptions{TermsOfServiceAgreed: true})
@@ -92,6 +95,7 @@ func main() {
 		Domains: []string{"https://localhost:5002"},
 		Bundle:  true,
 	}
+	log.Printf("obtaining cert")
 	certificates, err := client.Certificate.Obtain(request)
 	if err != nil {
 		log.Fatal(err)
