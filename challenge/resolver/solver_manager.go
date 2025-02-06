@@ -59,7 +59,6 @@ func (c *SolverManager) SetDNS01Provider(p challenge.Provider, opts ...dns01.Cha
 func (c *SolverManager) SetOpenIDFederation01Solver(s openidfederation01.Solver) error {
 	s.Validate = validateWithChallengeResponse
 	s.ACMEAPI = c.core
-	log.Infof("setting api %+v on openidfed solver", c.core)
 	c.solvers[challenge.OPENIDFEDERATION01] = &s
 	return nil
 }
@@ -77,7 +76,6 @@ func (c *SolverManager) chooseSolver(authz acme.Authorization) solver {
 	domain := challenge.GetTargetedDomain(authz)
 	for _, chlg := range authz.Challenges {
 		if solvr, ok := c.solvers[challenge.Type(chlg.Type)]; ok {
-			log.Infof("[%s] acme: use %s solver", domain, chlg.Type)
 			return solvr
 		}
 		log.Infof("[%s] acme: Could not find solver for: %s", domain, chlg.Type)

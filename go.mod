@@ -1,6 +1,6 @@
 module github.com/go-acme/lego/v4
 
-go 1.22.0
+go 1.23.5
 
 require (
 	cloud.google.com/go/compute/metadata v0.6.0
@@ -72,6 +72,7 @@ require (
 	github.com/stretchr/testify v1.10.0
 	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common v1.0.1065
 	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/dnspod v1.0.1065
+	github.com/tgeoghegan/oidf-box v0.0.1
 	github.com/transip/gotransip/v6 v6.26.0
 	github.com/ultradns/ultradns-go-sdk v1.8.0-20241010134910-243eeec
 	github.com/urfave/cli/v2 v2.27.5
@@ -207,3 +208,5 @@ require (
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace github.com/tgeoghegan/oidf-box => ../oidf-box

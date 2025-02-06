@@ -76,12 +76,10 @@ func main() {
 	// because we aren't running as root and can't bind a listener to port 80 and 443
 	// (used later when we attempt to pass challenges). Keep in mind that you still
 	// need to proxy challenge traffic to port 5002 and 5001.
-	// TODO(timg): confusion in Lego between solver vs. challenger vs. provider is messy
 	err = client.Challenge.SetOpenIDFederation01Solver(openidfederation01.Solver{})
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Printf("set solver for OpenID Fed")
 
 	// New users will need to register
 	reg, err := client.Registration.Register(registration.RegisterOptions{TermsOfServiceAgreed: true})
@@ -95,7 +93,6 @@ func main() {
 		Domains: []string{"https://localhost:5002"},
 		Bundle:  true,
 	}
-	log.Printf("obtaining cert")
 	certificates, err := client.Certificate.Obtain(request)
 	if err != nil {
 		log.Fatal(err)
@@ -103,7 +100,7 @@ func main() {
 
 	// Each certificate comes back with the cert bytes, the bytes of the client's
 	// private key, and a certificate URL. SAVE THESE TO DISK.
-	fmt.Printf("%#v\n", certificates)
+	fmt.Printf("PEM certificate:\n%s", string(certificates.Certificate))
 
 	// ... all done.
 }

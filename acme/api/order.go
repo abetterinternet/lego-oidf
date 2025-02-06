@@ -3,7 +3,6 @@ package api
 import (
 	"encoding/base64"
 	"errors"
-	"log"
 	"net"
 	"strings"
 	"time"
@@ -54,7 +53,6 @@ func (o *OrderService) NewWithOptions(domains []string, opts *OrderOptions) (acm
 			ident.Type = "ip"
 		} else if strings.HasPrefix(domain, "https://") {
 			// If it has the https scheme, assume it's an OpenID Federation entity
-			log.Printf("setting identifier type to openid fed")
 			ident.Type = "openid-federation"
 		}
 

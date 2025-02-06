@@ -18,6 +18,8 @@ import (
 	"github.com/go-acme/lego/v4/challenge"
 	"github.com/go-acme/lego/v4/log"
 	"github.com/go-acme/lego/v4/platform/wait"
+	"github.com/tgeoghegan/oidf-box/entity"
+	"github.com/tgeoghegan/oidf-box/openidfederation01"
 	"golang.org/x/crypto/ocsp"
 	"golang.org/x/net/idna"
 )
@@ -185,8 +187,6 @@ func (c *Certifier) Obtain(request ObtainRequest) (*Resource, error) {
 		return nil, err
 	}
 
-	log.Infof("authzs: %+v", authz)
-
 	err = c.resolver.Solve(authz)
 	if err != nil {
 		// If any challenge fails, return. Do not generate partial SAN certificates.
@@ -292,6 +292,30 @@ func (c *Certifier) getForOrder(domains []string, order acme.ExtendedOrder, bund
 		}
 	}
 
+	if order.Identifiers[0].Type == "openid-federation" {
+		if len(order.Identifiers) > 1 {
+			return nil, fmt.Errorf(
+				"order containing an openid-federation identifier may only contain a single identifier")
+		}
+
+		identifier, err := entity.NewIdentifier(order.Identifiers[0].Value)
+		if err != nil {
+			return nil, fmt.Errorf("could not create OIDF identifier: %w", err)
+		}
+
+		// Note we are not necessarily using either the entity key or one of its acme_requestor keys
+		csr, err := openidfederation01.GenerateCSRWithEntityIdentifier(
+			privateKey,
+			identifier,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		return c.getForCSR(
+			domains, order, bundle, csr, certcrypto.PEMEncode(privateKey), preferredChain)
+	}
+
 	commonName := ""
 	if len(domains[0]) <= 64 {
 		commonName = domains[0]
@@ -310,6 +334,10 @@ func (c *Certifier) getForOrder(domains []string, order acme.ExtendedOrder, bund
 	}
 
 	for _, auth := range order.Identifiers {
+		if auth.Type == "openid-federation" {
+			return nil, fmt.Errorf(
+				"order containing an openid-federation identifiers may only contain a single identifier")
+		}
 		if auth.Value != commonName {
 			san = append(san, auth.Value)
 		}
