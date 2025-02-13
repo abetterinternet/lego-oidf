@@ -36,9 +36,48 @@ func (u *MyUser) GetPrivateKey() crypto.PrivateKey {
 }
 
 func main() {
-	leafEntity, err := setupEntities()
+	oidfClient := entity.NewOIDFClient()
+
+	// TODO(timg): the various entity identifiers should be configurable
+	leafEntity, err := entity.NewAndServe("http://localhost:8003", entity.EntityOptions{
+		TrustAnchors:    []string{"http://localhost:8001"},
+		IsACMERequestor: true,
+	})
+	if err != nil {
+		log.Fatalf("failed to construct leaf entity: %s", err)
+	}
+	defer leafEntity.CleanUp()
+
+	// Subordinate leaf entity to the OIDF intermediate
+	intermediateIdentifier, err := entity.NewIdentifier("http://localhost:8002")
+	if err != nil {
+		log.Fatalf(err.Error())
+	}
+	intermediateClient, err := oidfClient.NewFederationEndpoints(intermediateIdentifier)
+	if err != nil {
+		log.Fatalf("failed to create API client: %s", err)
+	}
+	if err := intermediateClient.AddSubordinates([]entity.Identifier{leafEntity.Identifier}); err != nil {
+		log.Fatalf("failed to subordinate leaf entity: %s", err)
+	}
+	leafEntity.AddSuperior(intermediateIdentifier)
+
+	// acme-openid suggests doing discovery to find an entity in the federation with entity type
+	// acme_issuer. In this example, we'll just assume we've been provided with the issuer's entity
+	// identifier and discover the ACME API through the metadata. We'll eat least verify that we
+	// trust the entity, though.
+	// https://peppelinux.github.io/draft-demarco-acme-openid-federation/draft-demarco-acme-openid-federation.html#section-6.2
+	issuerIdentifier, err := entity.NewIdentifier("http://localhost:8004")
 	if err != nil {
 		log.Fatal(err)
+	}
+	trustChain, err := leafEntity.EvaluateTrust(issuerIdentifier)
+	if err != nil {
+		log.Fatalf("failed to evaluate trust in ACME issuer: %s", err)
+	}
+	var issuerMetadata entity.ACMEIssuerMetadata
+	if err := trustChain[0].FindMetadata(entity.ACMEIssuer, &issuerMetadata); err != nil {
+		log.Fatalf("ACME issuer metadata missing: %s", err)
 	}
 
 	// Create a user. New accounts need an email and private key to start.
@@ -54,11 +93,7 @@ func main() {
 
 	config := lego.NewConfig(&myUser)
 
-	// This CA URL is configured for a local instance of Pebble.
-	// TODO(timg): this should be determined by fetching the issuer's OIDF EC and getting
-	// acme_provider from its metadata
-	// https://peppelinux.github.io/draft-demarco-acme-openid-federation/draft-demarco-acme-openid-federation.html#name-issuer-metadata
-	config.CADirURL = "https://localhost:14000/dir"
+	config.CADirURL = issuerMetadata.Directory
 	config.Certificate.KeyType = certcrypto.RSA2048
 
 	// Disable TLS verification as Pebble's cert is self-signed
@@ -112,52 +147,4 @@ func main() {
 	fmt.Printf("PEM certificate:\n%s", string(certificates.Certificate))
 
 	// ... all done.
-}
-
-func setupEntities() (*entity.Entity, error) {
-	// Set up a chain of OIDF entities to act as a trust anchor (trusted by all entities), an
-	// intermediate and the ACME requestor
-	trustAnchor, err := entity.NewAndServe("http://localhost:8001", entity.EntityOptions{})
-	if err != nil {
-		return nil, fmt.Errorf("failed to construct trust anchor: %w", err)
-	}
-	defer trustAnchor.CleanUp()
-
-	intermediate, err := entity.NewAndServe("http://localhost:8002", entity.EntityOptions{
-		TrustAnchors: []string{"http://localhost:8001"},
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to construct intermediate: %w", err)
-	}
-	defer intermediate.CleanUp()
-
-	leafEntity, err := entity.NewAndServe("http://localhost:8003", entity.EntityOptions{
-		TrustAnchors: []string{"http://localhost:8001"},
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to construct leaf entity: %w", err)
-	}
-	defer leafEntity.CleanUp()
-
-	// Create subordinations
-	oidfClient := entity.NewOIDFClient()
-	intermediateClient, err := oidfClient.NewFederationEndpoints(intermediate.Identifier)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create API client: %w", err)
-	}
-	if err := intermediateClient.AddSubordinates([]entity.Identifier{leafEntity.Identifier}); err != nil {
-		return nil, fmt.Errorf("failed to subordinate leaf entity: %s", err)
-	}
-	leafEntity.AddSuperior(intermediate.Identifier)
-
-	trustAnchorClient, err := oidfClient.NewFederationEndpoints(trustAnchor.Identifier)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create API client: %w", err)
-	}
-	if err := trustAnchorClient.AddSubordinates([]entity.Identifier{intermediate.Identifier}); err != nil {
-		return nil, fmt.Errorf("failed to subordinate intermediate: %s", err)
-	}
-	intermediate.AddSuperior(trustAnchor.Identifier)
-
-	return leafEntity, nil
 }
