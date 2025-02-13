@@ -9,11 +9,13 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/go-acme/lego/v4/acme"
 	"github.com/go-acme/lego/v4/certcrypto"
 	"github.com/go-acme/lego/v4/certificate"
 	"github.com/go-acme/lego/v4/challenge/openidfederation01"
 	"github.com/go-acme/lego/v4/lego"
 	"github.com/go-acme/lego/v4/registration"
+	"github.com/tgeoghegan/oidf-box/entity"
 )
 
 // You'll need a user or account type that implements acme.User
@@ -34,6 +36,11 @@ func (u *MyUser) GetPrivateKey() crypto.PrivateKey {
 }
 
 func main() {
+	leafEntity, err := setupEntities()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	// Create a user. New accounts need an email and private key to start.
 	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
@@ -88,10 +95,12 @@ func main() {
 	}
 	myUser.Registration = reg
 
+	log.Printf("obtaining cert for 'domain' %s", leafEntity.Identifier.String())
+
 	request := certificate.ObtainRequest{
 		// The struct field here is Domains but it really should be Identifiers in ACME parlance.
-		Domains: []string{"https://localhost:5002"},
-		Bundle:  true,
+		Identifiers: []acme.Identifier{{Type: "openid-federation", Value: leafEntity.Identifier.String()}},
+		Bundle:      true,
 	}
 	certificates, err := client.Certificate.Obtain(request)
 	if err != nil {
@@ -103,4 +112,52 @@ func main() {
 	fmt.Printf("PEM certificate:\n%s", string(certificates.Certificate))
 
 	// ... all done.
+}
+
+func setupEntities() (*entity.Entity, error) {
+	// Set up a chain of OIDF entities to act as a trust anchor (trusted by all entities), an
+	// intermediate and the ACME requestor
+	trustAnchor, err := entity.NewAndServe("http://localhost:8001", entity.EntityOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to construct trust anchor: %w", err)
+	}
+	defer trustAnchor.CleanUp()
+
+	intermediate, err := entity.NewAndServe("http://localhost:8002", entity.EntityOptions{
+		TrustAnchors: []string{"http://localhost:8001"},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to construct intermediate: %w", err)
+	}
+	defer intermediate.CleanUp()
+
+	leafEntity, err := entity.NewAndServe("http://localhost:8003", entity.EntityOptions{
+		TrustAnchors: []string{"http://localhost:8001"},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to construct leaf entity: %w", err)
+	}
+	defer leafEntity.CleanUp()
+
+	// Create subordinations
+	oidfClient := entity.NewOIDFClient()
+	intermediateClient, err := oidfClient.NewFederationEndpoints(intermediate.Identifier)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create API client: %w", err)
+	}
+	if err := intermediateClient.AddSubordinates([]entity.Identifier{leafEntity.Identifier}); err != nil {
+		return nil, fmt.Errorf("failed to subordinate leaf entity: %s", err)
+	}
+	leafEntity.AddSuperior(intermediate.Identifier)
+
+	trustAnchorClient, err := oidfClient.NewFederationEndpoints(trustAnchor.Identifier)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create API client: %w", err)
+	}
+	if err := trustAnchorClient.AddSubordinates([]entity.Identifier{intermediate.Identifier}); err != nil {
+		return nil, fmt.Errorf("failed to subordinate intermediate: %s", err)
+	}
+	intermediate.AddSuperior(trustAnchor.Identifier)
+
+	return leafEntity, nil
 }

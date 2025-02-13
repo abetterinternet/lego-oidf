@@ -5,45 +5,46 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-acme/lego/v4/acme"
 	"github.com/stretchr/testify/assert"
 )
 
 func Test_merge(t *testing.T) {
 	testCases := []struct {
 		desc        string
-		prevDomains []string
-		nextDomains []string
-		expected    []string
+		prevDomains []acme.Identifier
+		nextDomains []acme.Identifier
+		expected    []acme.Identifier
 	}{
 		{
 			desc:        "all empty",
-			prevDomains: []string{},
-			nextDomains: []string{},
-			expected:    []string{},
+			prevDomains: []acme.Identifier{},
+			nextDomains: []acme.Identifier{},
+			expected:    []acme.Identifier{},
 		},
 		{
 			desc:        "next empty",
-			prevDomains: []string{"a", "b", "c"},
-			nextDomains: []string{},
-			expected:    []string{"a", "b", "c"},
+			prevDomains: []acme.Identifier{acme.NewIdentifier("a"), acme.NewIdentifier("b"), acme.NewIdentifier("c")},
+			nextDomains: []acme.Identifier{},
+			expected:    []acme.Identifier{acme.NewIdentifier("a"), acme.NewIdentifier("b"), acme.NewIdentifier("c")},
 		},
 		{
 			desc:        "prev empty",
-			prevDomains: []string{},
-			nextDomains: []string{"a", "b", "c"},
-			expected:    []string{"a", "b", "c"},
+			prevDomains: []acme.Identifier{},
+			nextDomains: []acme.Identifier{acme.NewIdentifier("a"), acme.NewIdentifier("b"), acme.NewIdentifier("c")},
+			expected:    []acme.Identifier{acme.NewIdentifier("a"), acme.NewIdentifier("b"), acme.NewIdentifier("c")},
 		},
 		{
 			desc:        "merge append",
-			prevDomains: []string{"a", "b", "c"},
-			nextDomains: []string{"a", "c", "d"},
-			expected:    []string{"a", "b", "c", "d"},
+			prevDomains: []acme.Identifier{acme.NewIdentifier("a"), acme.NewIdentifier("b"), acme.NewIdentifier("c")},
+			nextDomains: []acme.Identifier{acme.NewIdentifier("a"), acme.NewIdentifier("c"), acme.NewIdentifier("d")},
+			expected:    []acme.Identifier{acme.NewIdentifier("a"), acme.NewIdentifier("b"), acme.NewIdentifier("c"), acme.NewIdentifier("d")},
 		},
 		{
 			desc:        "merge same",
-			prevDomains: []string{"a", "b", "c"},
-			nextDomains: []string{"a", "b", "c"},
-			expected:    []string{"a", "b", "c"},
+			prevDomains: []acme.Identifier{acme.NewIdentifier("a"), acme.NewIdentifier("b"), acme.NewIdentifier("c")},
+			nextDomains: []acme.Identifier{acme.NewIdentifier("a"), acme.NewIdentifier("b"), acme.NewIdentifier("c")},
+			expected:    []acme.Identifier{acme.NewIdentifier("a"), acme.NewIdentifier("b"), acme.NewIdentifier("c")},
 		},
 	}
 

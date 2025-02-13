@@ -68,9 +68,9 @@ type Resource struct {
 // If `AlwaysDeactivateAuthorizations` is true, the authorizations are also relinquished if the obtain request was successful.
 // See https://datatracker.ietf.org/doc/html/rfc8555#section-7.5.2.
 type ObtainRequest struct {
-	Domains    []string
-	PrivateKey crypto.PrivateKey
-	MustStaple bool
+	Identifiers []acme.Identifier
+	PrivateKey  crypto.PrivateKey
+	MustStaple  bool
 
 	NotBefore      time.Time
 	NotAfter       time.Time
@@ -156,16 +156,20 @@ func NewCertifier(core *api.Core, resolver resolver, options CertifierOptions) *
 // This function will never return a partial certificate.
 // If one domain in the list fails, the whole certificate will fail.
 func (c *Certifier) Obtain(request ObtainRequest) (*Resource, error) {
-	if len(request.Domains) == 0 {
+	if len(request.Identifiers) == 0 {
 		return nil, errors.New("no domains to obtain a certificate for")
 	}
 
-	domains := sanitizeDomain(request.Domains)
+	identifiers := sanitizeIdentifiers(request.Identifiers)
+	identifierStrings := []string{}
+	for _, identifier := range identifiers {
+		identifierStrings = append(identifierStrings, identifier.Value)
+	}
 
 	if request.Bundle {
-		log.Infof("[%s] acme: Obtaining bundled SAN certificate", strings.Join(domains, ", "))
+		log.Infof("[%s] acme: Obtaining bundled SAN certificate", strings.Join(identifierStrings, ", "))
 	} else {
-		log.Infof("[%s] acme: Obtaining SAN certificate", strings.Join(domains, ", "))
+		log.Infof("[%s] acme: Obtaining SAN certificate", strings.Join(identifierStrings, ", "))
 	}
 
 	orderOpts := &api.OrderOptions{
@@ -175,7 +179,7 @@ func (c *Certifier) Obtain(request ObtainRequest) (*Resource, error) {
 		ReplacesCertID: request.ReplacesCertID,
 	}
 
-	order, err := c.core.Orders.NewWithOptions(domains, orderOpts)
+	order, err := c.core.Orders.NewWithOptions(identifiers, orderOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -194,10 +198,10 @@ func (c *Certifier) Obtain(request ObtainRequest) (*Resource, error) {
 		return nil, err
 	}
 
-	log.Infof("[%s] acme: Validations succeeded; requesting certificates", strings.Join(domains, ", "))
+	log.Infof("[%s] acme: Validations succeeded; requesting certificates", strings.Join(identifierStrings, ", "))
 
 	failures := newObtainError()
-	cert, err := c.getForOrder(domains, order, request.Bundle, request.PrivateKey, request.MustStaple, request.PreferredChain)
+	cert, err := c.getForOrder(identifiers, order, request.Bundle, request.PrivateKey, request.MustStaple, request.PreferredChain)
 	if err != nil {
 		for _, auth := range authz {
 			failures.Add(challenge.GetTargetedDomain(auth), err)
@@ -225,14 +229,19 @@ func (c *Certifier) ObtainForCSR(request ObtainForCSRRequest) (*Resource, error)
 		return nil, errors.New("cannot obtain resource for CSR: CSR is missing")
 	}
 
-	// figure out what domains it concerns
+	// figure out what identifiers it concerns
 	// start with the common name
-	domains := certcrypto.ExtractDomainsCSR(request.CSR)
+	identifiers := certcrypto.ExtractIdentifiersCSR(request.CSR)
+
+	identifierStrings := []string{}
+	for _, identifier := range identifiers {
+		identifierStrings = append(identifierStrings, identifier.Value)
+	}
 
 	if request.Bundle {
-		log.Infof("[%s] acme: Obtaining bundled SAN certificate given a CSR", strings.Join(domains, ", "))
+		log.Infof("[%s] acme: Obtaining bundled SAN certificate given a CSR", strings.Join(identifierStrings, ", "))
 	} else {
-		log.Infof("[%s] acme: Obtaining SAN certificate given a CSR", strings.Join(domains, ", "))
+		log.Infof("[%s] acme: Obtaining SAN certificate given a CSR", strings.Join(identifierStrings, ", "))
 	}
 
 	orderOpts := &api.OrderOptions{
@@ -242,7 +251,7 @@ func (c *Certifier) ObtainForCSR(request ObtainForCSRRequest) (*Resource, error)
 		ReplacesCertID: request.ReplacesCertID,
 	}
 
-	order, err := c.core.Orders.NewWithOptions(domains, orderOpts)
+	order, err := c.core.Orders.NewWithOptions(identifiers, orderOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -261,10 +270,10 @@ func (c *Certifier) ObtainForCSR(request ObtainForCSRRequest) (*Resource, error)
 		return nil, err
 	}
 
-	log.Infof("[%s] acme: Validations succeeded; requesting certificates", strings.Join(domains, ", "))
+	log.Infof("[%s] acme: Validations succeeded; requesting certificates", strings.Join(identifierStrings, ", "))
 
 	failures := newObtainError()
-	cert, err := c.getForCSR(domains, order, request.Bundle, request.CSR.Raw, nil, request.PreferredChain)
+	cert, err := c.getForCSR(identifiers, order, request.Bundle, request.CSR.Raw, nil, request.PreferredChain)
 	if err != nil {
 		for _, auth := range authz {
 			failures.Add(challenge.GetTargetedDomain(auth), err)
@@ -283,7 +292,7 @@ func (c *Certifier) ObtainForCSR(request ObtainForCSRRequest) (*Resource, error)
 	return cert, failures.Join()
 }
 
-func (c *Certifier) getForOrder(domains []string, order acme.ExtendedOrder, bundle bool, privateKey crypto.PrivateKey, mustStaple bool, preferredChain string) (*Resource, error) {
+func (c *Certifier) getForOrder(identifiers []acme.Identifier, order acme.ExtendedOrder, bundle bool, privateKey crypto.PrivateKey, mustStaple bool, preferredChain string) (*Resource, error) {
 	if privateKey == nil {
 		var err error
 		privateKey, err = certcrypto.GeneratePrivateKey(c.options.KeyType)
@@ -313,12 +322,13 @@ func (c *Certifier) getForOrder(domains []string, order acme.ExtendedOrder, bund
 		}
 
 		return c.getForCSR(
-			domains, order, bundle, csr, certcrypto.PEMEncode(privateKey), preferredChain)
+			identifiers, order, bundle, csr, certcrypto.PEMEncode(privateKey), preferredChain)
 	}
 
+	// TODO(timg): this probably should check whether the identifier is of type DNS
 	commonName := ""
-	if len(domains[0]) <= 64 {
-		commonName = domains[0]
+	if len(identifiers[0].Value) <= 64 {
+		commonName = identifiers[0].Value
 	}
 
 	// RFC8555 Section 7.4 "Applying for Certificate Issuance"
@@ -349,17 +359,17 @@ func (c *Certifier) getForOrder(domains []string, order acme.ExtendedOrder, bund
 		return nil, err
 	}
 
-	return c.getForCSR(domains, order, bundle, csr, certcrypto.PEMEncode(privateKey), preferredChain)
+	return c.getForCSR(identifiers, order, bundle, csr, certcrypto.PEMEncode(privateKey), preferredChain)
 }
 
-func (c *Certifier) getForCSR(domains []string, order acme.ExtendedOrder, bundle bool, csr, privateKeyPem []byte, preferredChain string) (*Resource, error) {
+func (c *Certifier) getForCSR(identifiers []acme.Identifier, order acme.ExtendedOrder, bundle bool, csr, privateKeyPem []byte, preferredChain string) (*Resource, error) {
 	respOrder, err := c.core.Orders.UpdateForCSR(order.Finalize, csr)
 	if err != nil {
 		return nil, err
 	}
 
 	certRes := &Resource{
-		Domain:     domains[0],
+		Domain:     identifiers[0].Value,
 		CertURL:    respOrder.Certificate,
 		PrivateKey: privateKeyPem,
 	}
@@ -569,8 +579,8 @@ func (c *Certifier) RenewWithOptions(certRes Resource, options *RenewOptions) (*
 	}
 
 	request := ObtainRequest{
-		Domains:    certcrypto.ExtractDomains(x509Cert),
-		PrivateKey: privateKey,
+		Identifiers: certcrypto.ExtractIdentifiers(x509Cert),
+		PrivateKey:  privateKey,
 	}
 
 	if options != nil {
@@ -729,14 +739,20 @@ func checkOrderStatus(order acme.ExtendedOrder) (bool, error) {
 // That is, it MUST be encoded according to the rules in Section 7 of [RFC5280].
 //
 // https://www.rfc-editor.org/rfc/rfc5280.html#section-7
-func sanitizeDomain(domains []string) []string {
-	var sanitizedDomains []string
-	for _, domain := range domains {
-		sanitizedDomain, err := idna.ToASCII(domain)
+func sanitizeIdentifiers(identifiers []acme.Identifier) []acme.Identifier {
+	var sanitizedDomains []acme.Identifier
+	for _, identifier := range identifiers {
+		if identifier.Type != "dns" {
+			// Only sanitize DNS identifiers
+			sanitizedDomains = append(sanitizedDomains, identifier)
+			continue
+		}
+		sanitizedDomain, err := idna.ToASCII(identifier.Value)
 		if err != nil {
-			log.Infof("skip domain %q: unable to sanitize (punnycode): %v", domain, err)
+			log.Infof("skip domain %q: unable to sanitize (punnycode): %v", identifier, err)
 		} else {
-			sanitizedDomains = append(sanitizedDomains, sanitizedDomain)
+			identifier.Value = sanitizedDomain
+			sanitizedDomains = append(sanitizedDomains, identifier)
 		}
 	}
 	return sanitizedDomains

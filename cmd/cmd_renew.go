@@ -9,6 +9,7 @@ import (
 	"slices"
 	"time"
 
+	"github.com/go-acme/lego/v4/acme"
 	"github.com/go-acme/lego/v4/acme/api"
 	"github.com/go-acme/lego/v4/certcrypto"
 	"github.com/go-acme/lego/v4/certificate"
@@ -185,10 +186,14 @@ func renewForDomains(ctx *cli.Context, account *Account, keyType certcrypto.KeyT
 
 	forceDomains := ctx.Bool(flgForceCertDomains)
 
-	certDomains := certcrypto.ExtractDomains(cert)
+	identifiers := []acme.Identifier{}
+	for _, domain := range domains {
+		identifiers = append(identifiers, acme.NewIdentifier(domain))
+	}
+	certIdentifiers := certcrypto.ExtractIdentifiers(cert)
 
 	if ariRenewalTime == nil && !needRenewal(cert, domain, ctx.Int(flgDays)) &&
-		(!forceDomains || slices.Equal(certDomains, domains)) {
+		(!forceDomains || slices.Equal(certIdentifiers, identifiers)) {
 		return nil
 	}
 
@@ -225,13 +230,13 @@ func renewForDomains(ctx *cli.Context, account *Account, keyType certcrypto.KeyT
 		time.Sleep(sleepTime)
 	}
 
-	renewalDomains := domains
+	renewalIdentifiers := identifiers
 	if !forceDomains {
-		renewalDomains = merge(certDomains, domains)
+		renewalIdentifiers = merge(certIdentifiers, identifiers)
 	}
 
 	request := certificate.ObtainRequest{
-		Domains:                        renewalDomains,
+		Identifiers:                    renewalIdentifiers,
 		PrivateKey:                     privateKey,
 		MustStaple:                     ctx.Bool(flgMustStaple),
 		NotBefore:                      getTime(ctx, flgNotBefore),
@@ -391,7 +396,7 @@ func getARIRenewalTime(ctx *cli.Context, cert *x509.Certificate, domain string, 
 	return renewalTime
 }
 
-func merge(prevDomains, nextDomains []string) []string {
+func merge(prevDomains, nextDomains []acme.Identifier) []acme.Identifier {
 	for _, next := range nextDomains {
 		if slices.Contains(prevDomains, next) {
 			continue

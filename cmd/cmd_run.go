@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-acme/lego/v4/acme"
 	"github.com/go-acme/lego/v4/certificate"
 	"github.com/go-acme/lego/v4/lego"
 	"github.com/go-acme/lego/v4/log"
@@ -200,9 +201,13 @@ func obtainCertificate(ctx *cli.Context, client *lego.Client) (*certificate.Reso
 
 	domains := ctx.StringSlice(flgDomains)
 	if len(domains) > 0 {
+		identifiers := []acme.Identifier{}
+		for _, domain := range domains {
+			identifiers = append(identifiers, acme.NewIdentifier(domain))
+		}
 		// obtain a certificate, generating a new private key
 		request := certificate.ObtainRequest{
-			Domains:                        domains,
+			Identifiers:                    identifiers,
 			Bundle:                         bundle,
 			MustStaple:                     ctx.Bool(flgMustStaple),
 			PreferredChain:                 ctx.String(flgPreferredChain),

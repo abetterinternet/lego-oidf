@@ -8,6 +8,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/go-acme/lego/v4/acme"
 	"github.com/go-acme/lego/v4/certificate"
 	"github.com/go-acme/lego/v4/challenge/dns01"
 	"github.com/go-acme/lego/v4/e2e/loader"
@@ -101,16 +102,16 @@ func TestChallengeDNS_Client_Obtain(t *testing.T) {
 	require.NoError(t, err)
 	user.registration = reg
 
-	domains := []string{"*.légo.acme", "légo.acme"}
+	domains := []acme.Identifier{{Type: "dns", Value: "*.légo.acme"}, {Type: "dns", Value: "légo.acme"}}
 
 	// https://github.com/letsencrypt/pebble/issues/285
 	privateKeyCSR, err := rsa.GenerateKey(rand.Reader, 2048)
 	require.NoError(t, err, "Could not generate test key")
 
 	request := certificate.ObtainRequest{
-		Domains:    domains,
-		Bundle:     true,
-		PrivateKey: privateKeyCSR,
+		Identifiers: domains,
+		Bundle:      true,
+		PrivateKey:  privateKeyCSR,
 	}
 	resource, err := client.Certificate.Obtain(request)
 	require.NoError(t, err)
@@ -155,17 +156,17 @@ func TestChallengeDNS_Client_Obtain_profile(t *testing.T) {
 	require.NoError(t, err)
 	user.registration = reg
 
-	domains := []string{"*.légo.acme", "légo.acme"}
+	domains := []acme.Identifier{{Type: "dns", Value: "*.légo.acme"}, {Type: "dns", Value: "légo.acme"}}
 
 	// https://github.com/letsencrypt/pebble/issues/285
 	privateKeyCSR, err := rsa.GenerateKey(rand.Reader, 2048)
 	require.NoError(t, err, "Could not generate test key")
 
 	request := certificate.ObtainRequest{
-		Domains:    domains,
-		Bundle:     true,
-		PrivateKey: privateKeyCSR,
-		Profile:    "shortlived",
+		Identifiers: domains,
+		Bundle:      true,
+		PrivateKey:  privateKeyCSR,
+		Profile:     "shortlived",
 	}
 	resource, err := client.Certificate.Obtain(request)
 	require.NoError(t, err)

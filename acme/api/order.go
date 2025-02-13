@@ -3,8 +3,6 @@ package api
 import (
 	"encoding/base64"
 	"errors"
-	"net"
-	"strings"
 	"time"
 
 	"github.com/go-acme/lego/v4/acme"
@@ -29,36 +27,12 @@ type OrderOptions struct {
 type OrderService service
 
 // New Creates a new order.
-func (o *OrderService) New(domains []string) (acme.ExtendedOrder, error) {
-	return o.NewWithOptions(domains, nil)
+func (o *OrderService) New(identifiers []acme.Identifier) (acme.ExtendedOrder, error) {
+	return o.NewWithOptions(identifiers, nil)
 }
 
 // NewWithOptions Creates a new order.
-func (o *OrderService) NewWithOptions(domains []string, opts *OrderOptions) (acme.ExtendedOrder, error) {
-	var identifiers []acme.Identifier
-	for _, domain := range domains {
-		// TODO(timg) This logic for inferring the identifier type from the string is a problem. For
-		// now there are only three cases we care about:
-		//   - if it can be parsed as an IP, assume it's an IP address
-		//   - if it has the prefix https://, assume it's an OpenID Federation entity
-		//   - otherwise treat it as a DNS name
-		//
-		// Ideally this function should take []acme.Identifier instead of []string and force callers
-		// to be explicit about the identifer type. Additionally, Type's value should be a type
-		// alias with some constants defined instead of a bare string.
-		ident := acme.Identifier{Value: domain, Type: "dns"}
-
-		// If it can be parsed as an IP, assume it's an IP address
-		if net.ParseIP(domain) != nil {
-			ident.Type = "ip"
-		} else if strings.HasPrefix(domain, "https://") {
-			// If it has the https scheme, assume it's an OpenID Federation entity
-			ident.Type = "openid-federation"
-		}
-
-		identifiers = append(identifiers, ident)
-	}
-
+func (o *OrderService) NewWithOptions(identifiers []acme.Identifier, opts *OrderOptions) (acme.ExtendedOrder, error) {
 	orderReq := acme.Order{Identifiers: identifiers}
 
 	if opts != nil {

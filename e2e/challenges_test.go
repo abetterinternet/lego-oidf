@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-acme/lego/v4/acme"
 	"github.com/go-acme/lego/v4/certcrypto"
 	"github.com/go-acme/lego/v4/certificate"
 	"github.com/go-acme/lego/v4/challenge/http01"
@@ -242,8 +243,8 @@ func TestChallengeHTTP_Client_Obtain(t *testing.T) {
 	user.registration = reg
 
 	request := certificate.ObtainRequest{
-		Domains: []string{"acme.wtf"},
-		Bundle:  true,
+		Identifiers: []acme.Identifier{{Type: "dns", Value: "acme.wtf"}},
+		Bundle:      true,
 	}
 	resource, err := client.Certificate.Obtain(request)
 	require.NoError(t, err)
@@ -280,9 +281,9 @@ func TestChallengeHTTP_Client_Obtain_profile(t *testing.T) {
 	user.registration = reg
 
 	request := certificate.ObtainRequest{
-		Domains: []string{"acme.wtf"},
-		Bundle:  true,
-		Profile: "shortlived",
+		Identifiers: []acme.Identifier{{Type: "dns", Value: "acme.wtf"}},
+		Bundle:      true,
+		Profile:     "shortlived",
 	}
 	resource, err := client.Certificate.Obtain(request)
 	require.NoError(t, err)
@@ -321,10 +322,10 @@ func TestChallengeHTTP_Client_Obtain_notBefore_notAfter(t *testing.T) {
 	now := time.Now().UTC()
 
 	request := certificate.ObtainRequest{
-		Domains:   []string{"acme.wtf"},
-		NotBefore: now.Add(1 * time.Hour),
-		NotAfter:  now.Add(2 * time.Hour),
-		Bundle:    true,
+		Identifiers: []acme.Identifier{{Type: "dns", Value: "acme.wtf"}},
+		NotBefore:   now.Add(1 * time.Hour),
+		NotAfter:    now.Add(2 * time.Hour),
+		Bundle:      true,
 	}
 	resource, err := client.Certificate.Obtain(request)
 	require.NoError(t, err)
@@ -402,9 +403,9 @@ func TestChallengeTLS_Client_Obtain(t *testing.T) {
 	require.NoError(t, err, "Could not generate test key")
 
 	request := certificate.ObtainRequest{
-		Domains:    []string{"acme.wtf"},
-		Bundle:     true,
-		PrivateKey: privateKeyCSR,
+		Identifiers: []acme.Identifier{{Type: "dns", Value: "acme.wtf"}},
+		Bundle:      true,
+		PrivateKey:  privateKeyCSR,
 	}
 	resource, err := client.Certificate.Obtain(request)
 	require.NoError(t, err)

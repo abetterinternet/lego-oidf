@@ -4,6 +4,8 @@ package acme
 
 import (
 	"encoding/json"
+	"net"
+	"strings"
 	"time"
 )
 
@@ -290,6 +292,26 @@ type Challenge struct {
 type Identifier struct {
 	Type  string `json:"type"`
 	Value string `json:"value"`
+}
+
+// NewIdentifier guesses what kind of identifier the input string is:
+//
+//   - if it can be parsed as an IP, assume it's an IP address
+//   - if it has the prefix https://, assume it's an OpenID Federation entity
+//   - otherwise treat it as a DNS name
+//
+// This is provided as a convenience for parsing arguments in CLI tools. Generally it's preferrable
+// for callers who know what they're working with to explicitly construct Identifier.
+func NewIdentifier(input string) Identifier {
+	ident := Identifier{Value: input, Type: "dns"}
+
+	if net.ParseIP(input) != nil {
+		ident.Type = "ip"
+	} else if strings.HasPrefix(input, "https://") {
+		ident.Type = "openid-federation"
+	}
+
+	return ident
 }
 
 // CSRMessage Certificate Signing Request.

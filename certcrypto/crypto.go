@@ -19,6 +19,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-acme/lego/v4/acme"
 	"golang.org/x/crypto/ocsp"
 )
 
@@ -237,10 +238,10 @@ func getMainDomain(subject pkix.Name, dnsNames []string) (string, error) {
 	return dnsNames[0], nil
 }
 
-func ExtractDomains(cert *x509.Certificate) []string {
-	var domains []string
+func ExtractIdentifiers(cert *x509.Certificate) []acme.Identifier {
+	var identifiers []acme.Identifier
 	if cert.Subject.CommonName != "" {
-		domains = append(domains, cert.Subject.CommonName)
+		identifiers = append(identifiers, acme.Identifier{Type: "dns", Value: cert.Subject.CommonName})
 	}
 
 	// Check for SAN certificate
@@ -248,44 +249,46 @@ func ExtractDomains(cert *x509.Certificate) []string {
 		if sanDomain == cert.Subject.CommonName {
 			continue
 		}
-		domains = append(domains, sanDomain)
+		identifiers = append(identifiers, acme.Identifier{Type: "dns", Value: sanDomain})
 	}
 
 	commonNameIP := net.ParseIP(cert.Subject.CommonName)
 	for _, sanIP := range cert.IPAddresses {
 		if !commonNameIP.Equal(sanIP) {
-			domains = append(domains, sanIP.String())
+			identifiers = append(identifiers, acme.Identifier{Type: "ip", Value: sanIP.String()})
 		}
 	}
 
-	return domains
+	// TODO(timg): check for SANs of type OpenID Federation here
+
+	return identifiers
 }
 
-func ExtractDomainsCSR(csr *x509.CertificateRequest) []string {
-	var domains []string
+func ExtractIdentifiersCSR(csr *x509.CertificateRequest) []acme.Identifier {
+	var identifiers []acme.Identifier
 	if csr.Subject.CommonName != "" {
-		domains = append(domains, csr.Subject.CommonName)
+		identifiers = append(identifiers, acme.Identifier{Type: "dns", Value: csr.Subject.CommonName})
 	}
 
 	// loop over the SubjectAltName DNS names
 	for _, sanName := range csr.DNSNames {
-		if slices.Contains(domains, sanName) {
+		if slices.Contains(identifiers, acme.Identifier{Type: "dns", Value: sanName}) {
 			// Duplicate; skip this name
 			continue
 		}
 
 		// Name is unique
-		domains = append(domains, sanName)
+		identifiers = append(identifiers, acme.Identifier{Type: "dns", Value: sanName})
 	}
 
 	cnip := net.ParseIP(csr.Subject.CommonName)
 	for _, sanIP := range csr.IPAddresses {
 		if !cnip.Equal(sanIP) {
-			domains = append(domains, sanIP.String())
+			identifiers = append(identifiers, acme.Identifier{Type: "ip", Value: sanIP.String()})
 		}
 	}
 
-	return domains
+	return identifiers
 }
 
 func GeneratePemCert(privateKey *rsa.PrivateKey, domain string, extensions []pkix.Extension) ([]byte, error) {

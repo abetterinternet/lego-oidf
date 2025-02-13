@@ -29,7 +29,9 @@ func (s *Solver) Solve(authz acme.Authorization) error {
 		return err
 	}
 
-	entity, err := entity.New(domain)
+	entity, err := entity.New(domain, entity.EntityOptions{
+		IsACMERequestor: true,
+	})
 	if err != nil {
 		return err
 	}
@@ -49,16 +51,9 @@ func (s *Solver) Solve(authz acme.Authorization) error {
 	// The token signed with the acme_requestor key now gets POSTed to the ACME server. That request
 	// gets signed with an ACME account key per RFC 8555. This happens in the s.validate call below.
 	challengePayload := openidfederation01.ChallengeResponse{
-		// TODO: add trust_chain
+		// TODO(timg): add trust_chain
 		Sig: compactSignedToken,
 	}
-
-	// Begin serving the OpenID Federation Entity Configuration so the issuer can find it during
-	// validation
-	if err := entity.ServeEntityConfiguration(); err != nil {
-		return err
-	}
-	defer entity.CleanUp()
 
 	return s.Validate(s.ACMEAPI, domain, chall, challengePayload)
 }
