@@ -118,7 +118,9 @@ func main() {
 	// because we aren't running as root and can't bind a listener to port 80 and 443
 	// (used later when we attempt to pass challenges). Keep in mind that you still
 	// need to proxy challenge traffic to port 5002 and 5001.
-	err = client.Challenge.SetOpenIDFederation01Solver(openidfederation01.Solver{})
+	err = client.Challenge.SetOpenIDFederation01Solver(openidfederation01.Solver{
+		Entity: *leafEntity,
+	})
 	if err != nil {
 		log.Fatal(err)
 	}

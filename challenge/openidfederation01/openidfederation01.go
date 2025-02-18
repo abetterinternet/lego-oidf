@@ -17,6 +17,7 @@ type ValidateFunc func(core *api.Core, domain string, chlg acme.Challenge, respo
 type Solver struct {
 	Validate ValidateFunc
 	ACMEAPI  *api.Core
+	Entity   entity.Entity
 }
 
 // Solve satisifes resolver.Solver
@@ -29,16 +30,9 @@ func (s *Solver) Solve(authz acme.Authorization) error {
 		return err
 	}
 
-	entity, err := entity.New(domain, entity.EntityOptions{
-		IsACMERequestor: true,
-	})
-	if err != nil {
-		return err
-	}
-
 	// Sign the token from the challenge and represent that as a compact JWS
 	// https://peppelinux.github.io/draft-demarco-acme-openid-federation/draft-demarco-acme-openid-federation.html#name-openid-federation-challenge
-	signedToken, err := entity.SignChallenge(chall.Token)
+	signedToken, err := s.Entity.SignChallenge(chall.Token)
 	if err != nil {
 		return err
 	}
