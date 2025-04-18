@@ -40,8 +40,9 @@ func main() {
 
 	// TODO(timg): the various entity identifiers should be configurable
 	leafEntity, err := entity.NewAndServe("http://localhost:8003", entity.EntityOptions{
-		TrustAnchors:    []string{"http://localhost:8001"},
-		IsACMERequestor: true,
+		TrustAnchors: []string{"http://localhost:8001"},
+		// Provide no keys, so oidf-box will generate them at startup
+		ACMERequestor: &entity.ACMERequestorOptions{},
 	})
 	if err != nil {
 		log.Fatalf("failed to construct leaf entity: %s", err)
@@ -119,7 +120,7 @@ func main() {
 	// (used later when we attempt to pass challenges). Keep in mind that you still
 	// need to proxy challenge traffic to port 5002 and 5001.
 	err = client.Challenge.SetOpenIDFederation01Solver(openidfederation01.Solver{
-		Entity: *leafEntity,
+		Entity: leafEntity,
 	})
 	if err != nil {
 		log.Fatal(err)

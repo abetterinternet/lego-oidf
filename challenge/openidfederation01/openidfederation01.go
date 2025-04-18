@@ -12,12 +12,12 @@ import (
 // ValidateFunc is a callback into solver_manager.go used to poll for the ACME server validating our
 // challenge response. This is rather awkward, but is done to fit the existing object model of DNS
 // and HTTP challenges and their providers.
-type ValidateFunc func(core *api.Core, domain string, chlg acme.Challenge, response interface{}) error
+type ValidateFunc func(core *api.Core, domain string, chlg acme.Challenge, response any) error
 
 type Solver struct {
 	Validate ValidateFunc
 	ACMEAPI  *api.Core
-	Entity   entity.Entity
+	Entity   *entity.Entity
 }
 
 // Solve satisifes resolver.Solver
