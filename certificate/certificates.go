@@ -301,21 +301,21 @@ func (c *Certifier) getForOrder(identifiers []acme.Identifier, order acme.Extend
 		}
 	}
 
+	// TODO(timg): allow openid-federation identifiers mixed with other types
 	if order.Identifiers[0].Type == "openid-federation" {
-		if len(order.Identifiers) > 1 {
-			return nil, fmt.Errorf(
-				"order containing an openid-federation identifier may only contain a single identifier")
-		}
-
-		identifier, err := entity.NewIdentifier(order.Identifiers[0].Value)
-		if err != nil {
-			return nil, fmt.Errorf("could not create OIDF identifier: %w", err)
+		entityIdentifiers := []entity.Identifier{}
+		for _, identifier := range order.Identifiers {
+			entityIdentifier, err := entity.NewIdentifier(identifier.Value)
+			if err != nil {
+				return nil, fmt.Errorf("could not create OIDF identifier: %w", err)
+			}
+			entityIdentifiers = append(entityIdentifiers, entityIdentifier)
 		}
 
 		// Note we are not necessarily using either the entity key or one of its acme_requestor keys
-		csr, err := openidfederation01.GenerateCSRWithEntityIdentifier(
+		csr, err := openidfederation01.GenerateCSRWithEntityIdentifiers(
 			privateKey,
-			identifier,
+			entityIdentifiers,
 		)
 		if err != nil {
 			return nil, err
@@ -344,10 +344,6 @@ func (c *Certifier) getForOrder(identifiers []acme.Identifier, order acme.Extend
 	}
 
 	for _, auth := range order.Identifiers {
-		if auth.Type == "openid-federation" {
-			return nil, fmt.Errorf(
-				"order containing an openid-federation identifiers may only contain a single identifier")
-		}
 		if auth.Value != commonName {
 			san = append(san, auth.Value)
 		}

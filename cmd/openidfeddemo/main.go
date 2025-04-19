@@ -49,7 +49,17 @@ func main() {
 	}
 	defer leafEntity.CleanUp()
 
-	// Subordinate leaf entity to the OIDF intermediate
+	secondLeafEntity, err := entity.NewAndServe("http://localhost:8005", entity.EntityOptions{
+		TrustAnchors: []string{"http://localhost:8001"},
+		// Provide no keys, so oidf-box will generate them at startup
+		ACMERequestor: &entity.ACMERequestorOptions{},
+	})
+	if err != nil {
+		log.Fatalf("failed to construct leaf entity: %s", err)
+	}
+	defer secondLeafEntity.CleanUp()
+
+	// Subordinate leaf entities to the OIDF intermediate
 	intermediateIdentifier, err := entity.NewIdentifier("http://localhost:8002")
 	if err != nil {
 		log.Fatalf(err.Error())
@@ -58,10 +68,14 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to create API client: %s", err)
 	}
-	if err := intermediateClient.AddSubordinates([]entity.Identifier{leafEntity.Identifier}); err != nil {
+	if err := intermediateClient.AddSubordinates([]entity.Identifier{
+		leafEntity.Identifier,
+		secondLeafEntity.Identifier,
+	}); err != nil {
 		log.Fatalf("failed to subordinate leaf entity: %s", err)
 	}
 	leafEntity.AddSuperior(intermediateIdentifier)
+	secondLeafEntity.AddSuperior(intermediateIdentifier)
 
 	// acme-openid suggests doing discovery to find an entity in the federation with entity type
 	// acme_issuer. In this example, we'll just assume we've been provided with the issuer's entity
@@ -120,7 +134,7 @@ func main() {
 	// (used later when we attempt to pass challenges). Keep in mind that you still
 	// need to proxy challenge traffic to port 5002 and 5001.
 	err = client.Challenge.SetOpenIDFederation01Solver(openidfederation01.Solver{
-		Entity: leafEntity,
+		Entities: []*entity.Entity{leafEntity, secondLeafEntity},
 	})
 	if err != nil {
 		log.Fatal(err)
@@ -136,9 +150,14 @@ func main() {
 	log.Printf("obtaining cert for 'domain' %s", leafEntity.Identifier.String())
 
 	request := certificate.ObtainRequest{
-		// The struct field here is Domains but it really should be Identifiers in ACME parlance.
-		Identifiers: []acme.Identifier{{Type: "openid-federation", Value: leafEntity.Identifier.String()}},
-		Bundle:      true,
+		// It's kinda goofy to have multiple OpenID Federation identifiers in a single ACME order,
+		// because what does it mean for a single key in the X.509 realm to be valid for both OIDF
+		// entities? But we want to ensure this is possible in the ACME extension.
+		Identifiers: []acme.Identifier{
+			{Type: "openid-federation", Value: leafEntity.Identifier.String()},
+			{Type: "openid-federation", Value: secondLeafEntity.Identifier.String()},
+		},
+		Bundle: true,
 	}
 	certificates, err := client.Certificate.Obtain(request)
 	if err != nil {

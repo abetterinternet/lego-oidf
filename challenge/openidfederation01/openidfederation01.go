@@ -1,6 +1,8 @@
 package openidfederation01
 
 import (
+	"fmt"
+
 	"github.com/go-acme/lego/v4/acme"
 	"github.com/go-acme/lego/v4/acme/api"
 	"github.com/go-acme/lego/v4/challenge"
@@ -17,7 +19,7 @@ type ValidateFunc func(core *api.Core, domain string, chlg acme.Challenge, respo
 type Solver struct {
 	Validate ValidateFunc
 	ACMEAPI  *api.Core
-	Entity   *entity.Entity
+	Entities []*entity.Entity
 }
 
 // Solve satisifes resolver.Solver
@@ -30,9 +32,23 @@ func (s *Solver) Solve(authz acme.Authorization) error {
 		return err
 	}
 
+	// Figure out which entity to solve the challenge with
+	var challengeSolver *entity.Entity
+	for _, entity := range s.Entities {
+		// Double check that the identifier in the authz has the correct type, though it should not
+		// be possible to get here otherwise.
+		if authz.Identifier.Type != "openid-federation" {
+			return fmt.Errorf("unexpected identifier %v in authz", authz)
+		}
+		if authz.Identifier.Value == entity.Identifier.String() {
+			challengeSolver = entity
+			break
+		}
+	}
+
 	// Sign the token from the challenge and represent that as a compact JWS
 	// https://peppelinux.github.io/draft-demarco-acme-openid-federation/draft-demarco-acme-openid-federation.html#name-openid-federation-challenge
-	signedToken, err := s.Entity.SignChallenge(chall.Token)
+	signedToken, err := challengeSolver.SignChallenge(chall.Token)
 	if err != nil {
 		return err
 	}
