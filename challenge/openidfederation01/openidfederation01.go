@@ -19,7 +19,7 @@ type ValidateFunc func(core *api.Core, domain string, chlg acme.Challenge, respo
 type Solver struct {
 	Validate ValidateFunc
 	ACMEAPI  *api.Core
-	Entities []*entity.Entity
+	Entities []*entity.FederationEndpoints
 }
 
 // Solve satisifes resolver.Solver
@@ -33,27 +33,20 @@ func (s *Solver) Solve(authz acme.Authorization) error {
 	}
 
 	// Figure out which entity to solve the challenge with
-	var challengeSolver *entity.Entity
+	var challengeSolver *entity.FederationEndpoints
 	for _, entity := range s.Entities {
 		// Double check that the identifier in the authz has the correct type, though it should not
 		// be possible to get here otherwise.
 		if authz.Identifier.Type != "openid-federation" {
 			return fmt.Errorf("unexpected identifier %v in authz", authz)
 		}
-		if authz.Identifier.Value == entity.Identifier.String() {
+		if authz.Identifier.Value == entity.Entity.Subject.String() {
 			challengeSolver = entity
 			break
 		}
 	}
 
-	// Sign the token from the challenge and represent that as a compact JWS
-	// https://peppelinux.github.io/draft-demarco-acme-openid-federation/draft-demarco-acme-openid-federation.html#name-openid-federation-challenge
 	signedToken, err := challengeSolver.SignChallenge(chall.Token)
-	if err != nil {
-		return err
-	}
-
-	compactSignedToken, err := signedToken.CompactSerialize()
 	if err != nil {
 		return err
 	}
@@ -62,7 +55,7 @@ func (s *Solver) Solve(authz acme.Authorization) error {
 	// gets signed with an ACME account key per RFC 8555. This happens in the s.validate call below.
 	challengePayload := openidfederation01.ChallengeResponse{
 		// TODO(timg): add trust_chain
-		Sig: compactSignedToken,
+		Sig: signedToken,
 	}
 
 	return s.Validate(s.ACMEAPI, domain, chall, challengePayload)
