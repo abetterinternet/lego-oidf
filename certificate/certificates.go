@@ -18,7 +18,6 @@ import (
 	"github.com/go-acme/lego/v4/challenge"
 	"github.com/go-acme/lego/v4/log"
 	"github.com/go-acme/lego/v4/platform/wait"
-	"github.com/tgeoghegan/oidf-box/entity"
 	"github.com/tgeoghegan/oidf-box/openidfederation01"
 	"golang.org/x/crypto/ocsp"
 	"golang.org/x/net/idna"
@@ -303,13 +302,9 @@ func (c *Certifier) getForOrder(identifiers []acme.Identifier, order acme.Extend
 
 	// TODO(timg): allow openid-federation identifiers mixed with other types
 	if order.Identifiers[0].Type == "openid-federation" {
-		entityIdentifiers := []entity.Identifier{}
+		entityIdentifiers := []string{}
 		for _, identifier := range order.Identifiers {
-			entityIdentifier, err := entity.NewIdentifier(identifier.Value)
-			if err != nil {
-				return nil, fmt.Errorf("could not create OIDF identifier: %w", err)
-			}
-			entityIdentifiers = append(entityIdentifiers, entityIdentifier)
+			entityIdentifiers = append(entityIdentifiers, identifier.Value)
 		}
 
 		// Note we are not necessarily using either the entity key or one of its acme_requestor keys

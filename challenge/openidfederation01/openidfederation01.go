@@ -7,7 +7,7 @@ import (
 	"github.com/go-acme/lego/v4/acme/api"
 	"github.com/go-acme/lego/v4/challenge"
 	"github.com/go-acme/lego/v4/log"
-	"github.com/tgeoghegan/oidf-box/entity"
+	"github.com/tgeoghegan/oidf-box/oidfclient"
 	"github.com/tgeoghegan/oidf-box/openidfederation01"
 )
 
@@ -19,7 +19,7 @@ type ValidateFunc func(core *api.Core, domain string, chlg acme.Challenge, respo
 type Solver struct {
 	Validate ValidateFunc
 	ACMEAPI  *api.Core
-	Entities []*entity.FederationEndpoints
+	Entities []*oidfclient.FederationEndpoints
 }
 
 // Solve satisifes resolver.Solver
@@ -33,14 +33,14 @@ func (s *Solver) Solve(authz acme.Authorization) error {
 	}
 
 	// Figure out which entity to solve the challenge with
-	var challengeSolver *entity.FederationEndpoints
+	var challengeSolver *oidfclient.FederationEndpoints
 	for _, entity := range s.Entities {
 		// Double check that the identifier in the authz has the correct type, though it should not
 		// be possible to get here otherwise.
 		if authz.Identifier.Type != "openid-federation" {
 			return fmt.Errorf("unexpected identifier %v in authz", authz)
 		}
-		if authz.Identifier.Value == entity.Entity.Subject.String() {
+		if authz.Identifier.Value == entity.Entity.Subject {
 			challengeSolver = entity
 			break
 		}
