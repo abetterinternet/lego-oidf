@@ -7,7 +7,6 @@ import (
 	"github.com/go-acme/lego/v4/acme/api"
 	"github.com/go-acme/lego/v4/challenge"
 	"github.com/go-acme/lego/v4/log"
-	"github.com/tgeoghegan/oidf-box/oidfclient"
 	"github.com/tgeoghegan/oidf-box/openidfederation01"
 )
 
@@ -19,7 +18,7 @@ type ValidateFunc func(core *api.Core, domain string, chlg acme.Challenge, respo
 type Solver struct {
 	Validate ValidateFunc
 	ACMEAPI  *api.Core
-	Entities []*oidfclient.FederationEndpoints
+	Entities []*openidfederation01.ChallengeSolver
 }
 
 // Solve satisifes resolver.Solver
@@ -33,17 +32,21 @@ func (s *Solver) Solve(authz acme.Authorization) error {
 	}
 
 	// Figure out which entity to solve the challenge with
-	var challengeSolver *oidfclient.FederationEndpoints
+	var challengeSolver *openidfederation01.ChallengeSolver
 	for _, entity := range s.Entities {
 		// Double check that the identifier in the authz has the correct type, though it should not
 		// be possible to get here otherwise.
 		if authz.Identifier.Type != "openid-federation" {
 			return fmt.Errorf("unexpected identifier %v in authz", authz)
 		}
-		if authz.Identifier.Value == entity.Entity.Subject {
+		if authz.Identifier.Value == entity.EntityIdentifier {
 			challengeSolver = entity
 			break
 		}
+	}
+
+	if challengeSolver == nil {
+		return fmt.Errorf("found no solver for identifier %s", authz.Identifier.Value)
 	}
 
 	signedToken, err := challengeSolver.SignChallenge(chall.Token)
@@ -55,7 +58,7 @@ func (s *Solver) Solve(authz acme.Authorization) error {
 	// gets signed with an ACME account key per RFC 8555. This happens in the s.validate call below.
 	challengePayload := openidfederation01.ChallengeResponse{
 		// TODO(timg): add trust_chain
-		Sig: signedToken,
+		Sig: *signedToken,
 	}
 
 	return s.Validate(s.ACMEAPI, domain, chall, challengePayload)
