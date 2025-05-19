@@ -285,6 +285,12 @@ type Challenge struct {
 
 	// https://www.rfc-editor.org/rfc/rfc8555.html#section-8.1
 	KeyAuthorization string `json:"keyAuthorization"`
+
+	// trustAnchors (optional, list of string):
+	// Trust anchors trusted by the issuer. Used only in openid-federation-01
+	// challenges.
+	// https://github.com/peppelinux/draft-demarco-acme-openid-federation/pull/80
+	TrustAnchors []string `json:"trustAnchors"`
 }
 
 // Identifier the ACME identifier object.

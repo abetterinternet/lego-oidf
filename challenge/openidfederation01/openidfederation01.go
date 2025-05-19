@@ -49,17 +49,12 @@ func (s *Solver) Solve(authz acme.Authorization) error {
 		return fmt.Errorf("found no solver for identifier %s", authz.Identifier.Value)
 	}
 
-	signedToken, err := challengeSolver.SignChallenge(chall.Token)
+	challengeResponse, err := challengeSolver.Solve(chall.Token, chall.TrustAnchors)
 	if err != nil {
 		return err
 	}
 
 	// The token signed with the acme_requestor key now gets POSTed to the ACME server. That request
 	// gets signed with an ACME account key per RFC 8555. This happens in the s.validate call below.
-	challengePayload := openidfederation01.ChallengeResponse{
-		// TODO(timg): add trust_chain
-		Sig: *signedToken,
-	}
-
-	return s.Validate(s.ACMEAPI, domain, chall, challengePayload)
+	return s.Validate(s.ACMEAPI, domain, chall, challengeResponse)
 }
