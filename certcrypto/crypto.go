@@ -21,6 +21,8 @@ import (
 
 	"github.com/go-acme/lego/v4/acme"
 	"golang.org/x/crypto/ocsp"
+
+	oidf01 "github.com/tgeoghegan/oidf-box/openidfederation01"
 )
 
 // Constants for all key types we support.
@@ -259,7 +261,16 @@ func ExtractIdentifiers(cert *x509.Certificate) []acme.Identifier {
 		}
 	}
 
-	// TODO(timg): check for SANs of type OpenID Federation here
+	oidfIdentifiers, err := oidf01.EntityIdentifiersFromCertificate(cert)
+	if err == nil {
+		// TODO(timg): EntityIdentifiersFromCertificatecan fail either because the cert contains
+		// no SANs with OIDF identifiers, or because of a malformed cert. We might want to raise an
+		// error in the latter case, but we can't really distinguish, and in any case this function
+		// doesn't return an error itself.
+		for _, identifier := range oidfIdentifiers {
+			identifiers = append(identifiers, acme.Identifier{Type: "openid-federation", Value: identifier})
+		}
+	}
 
 	return identifiers
 }
