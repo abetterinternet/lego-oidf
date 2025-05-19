@@ -72,7 +72,7 @@ require (
 	github.com/stretchr/testify v1.10.0
 	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common v1.0.1065
 	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/dnspod v1.0.1065
-	github.com/tgeoghegan/oidf-box v0.0.1
+	github.com/tgeoghegan/oidf-box v0.0.0-20250519230951-6b44a9142bd2
 	github.com/transip/gotransip/v6 v6.26.0
 	github.com/ultradns/ultradns-go-sdk v1.8.0-20241010134910-243eeec
 	github.com/urfave/cli/v2 v2.27.5
@@ -229,6 +229,4 @@ require (
 	tideland.dev/go/slices v0.2.0 // indirect
 )
 
-replace github.com/tgeoghegan/oidf-box => ../oidf-box
-
-replace github.com/zachmann/go-oidfed => ../go-oidfed
+replace github.com/zachmann/go-oidfed => github.com/tgeoghegan/go-oidfed v0.0.0-20250507182343-dc509506516f

@@ -879,6 +879,10 @@ github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common v1.0.1065 h1:krc
 github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common v1.0.1065/go.mod h1:r5r4xbfxSaeR04b166HGsBa/R4U3SueirEUpXGuw+Q0=
 github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/dnspod v1.0.1065 h1:aEFtLD1ceyeljQXB1S2BjN0zjTkf0X3XmpuxFIiC29w=
 github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/dnspod v1.0.1065/go.mod h1:HWvwy09hFSMXrj9SMvVRWV4U7rZO3l+WuogyNuxiT3M=
+github.com/tgeoghegan/go-oidfed v0.0.0-20250507182343-dc509506516f h1:Z/RQN8eMnXM07l+V7rJLpbp7QtVOuGs3raPSJIYu3ZQ=
+github.com/tgeoghegan/go-oidfed v0.0.0-20250507182343-dc509506516f/go.mod h1:gowUsXSDN46rkrZVwR9K6d74oG8/Eh1tJxPfEGm1wGs=
+github.com/tgeoghegan/oidf-box v0.0.0-20250519230951-6b44a9142bd2 h1:71NMCNijoqb29+N5QEQ3CuRAur0thMJeO4T6ACDWL+8=
+github.com/tgeoghegan/oidf-box v0.0.0-20250519230951-6b44a9142bd2/go.mod h1:f5TYEZr0ryILRHhLJ7gMPlzQ7v3LFNkhsXpK6/8A2kM=
 github.com/tjfoc/gmsm v1.4.1 h1:aMe1GlZb+0bLjn+cKTPEvvn9oUEBlJitaZiiBwsbgho=
 github.com/tjfoc/gmsm v1.4.1/go.mod h1:j4INPkHWMrhJb38G+J6W4Tw0AbuN8Thu3PbdVYhVcTE=
 github.com/tmc/grpc-websocket-proxy v0.0.0-20190109142713-0ad062ec5ee5/go.mod h1:ncp9v5uamzpCO7NfCPTXjqaC+bZgJeR0sMTm6dMHP7U=
