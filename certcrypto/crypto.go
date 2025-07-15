@@ -22,7 +22,7 @@ import (
 	"github.com/go-acme/lego/v4/acme"
 	"golang.org/x/crypto/ocsp"
 
-	oidf01 "github.com/tgeoghegan/oidf-box/openidfederation01"
+	oidf01 "github.com/abetterinternet/oidf-box/openidfederation01"
 )
 
 // Constants for all key types we support.

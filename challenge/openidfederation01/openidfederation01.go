@@ -3,11 +3,11 @@ package openidfederation01
 import (
 	"fmt"
 
+	"github.com/abetterinternet/oidf-box/openidfederation01"
 	"github.com/go-acme/lego/v4/acme"
 	"github.com/go-acme/lego/v4/acme/api"
 	"github.com/go-acme/lego/v4/challenge"
 	"github.com/go-acme/lego/v4/log"
-	"github.com/tgeoghegan/oidf-box/openidfederation01"
 )
 
 // ValidateFunc is a callback into solver_manager.go used to poll for the ACME server validating our
