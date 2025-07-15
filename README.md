@@ -3,6 +3,16 @@
   <p>Automatic Certificates and HTTPS for everyone.</p>
 </div>
 
+# This is not the real Lego!
+
+This is a fork of Lego created in support of [ISRG's research into digital identity][di-blog]. *It
+is not intended for production use*. If you want to get certificates from an ACME CA like Let's
+Encrypt, use [the real Lego][real-lego] or one of the [other ACME clients recommended by Let's Encrypt][acme-clients].
+
+[di-blog]: https://www.abetterinternet.org/post/humandigitalidentityspace/
+[real-lego]: https://github.com/go-acme/lego/
+[acme-clients]: https://letsencrypt.org/docs/client-options/
+
 # Lego
 
 Let's Encrypt client and ACME library written in Go.
