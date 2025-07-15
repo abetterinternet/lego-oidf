@@ -106,8 +106,8 @@ github.com/Shopify/toxiproxy/v2 v2.1.6-0.20210914104332-15ea381dcdae/go.mod h1:/
 github.com/TwiN/gocache/v2 v2.2.2 h1:4HToPfDV8FSbaYO5kkbhLpEllUYse5rAf+hVU/mSsuI=
 github.com/TwiN/gocache/v2 v2.2.2/go.mod h1:WfIuwd7GR82/7EfQqEtmLFC3a2vqaKbs4Pe6neB7Gyc=
 github.com/VividCortex/gohistogram v1.0.0/go.mod h1:Pf5mBqqDxYaXu3hDrrU+w6nw50o/4+TcAqDqk/vUH7g=
-github.com/abetterinternet/oidf-box v0.0.0-20250715203145-9addc5702cba h1:ixx7lMEG/7f3Zsnh5yaQRIldIMfaT0VNRmR21zfqm8U=
-github.com/abetterinternet/oidf-box v0.0.0-20250715203145-9addc5702cba/go.mod h1:gMXsQ6qBEny+CSfqFSEkasnUnvO59Q8P7oeWIeT3+fE=
+github.com/abetterinternet/oidf-box v0.0.0-20250715205828-1ef62e00f888 h1:qjZLubLilsHIwtMpRH5mph6Rq/zgMngpbDsZJA0SSzE=
+github.com/abetterinternet/oidf-box v0.0.0-20250715205828-1ef62e00f888/go.mod h1:Ooz1ZVNiWXuxzOB0f2AaIVvGVow5UTRiez48EDxo0PM=
 github.com/adam-hanna/arrayOperations v1.0.1 h1:iAot3I2p4yKrFk8eRhEkuHj0ttOrfFJMWAo7Is/rHwk=
 github.com/adam-hanna/arrayOperations v1.0.1/go.mod h1:nScFkGwh89OyLY/cnXdx/S1maSqxhSXz38so1JxsChQ=
 github.com/afex/hystrix-go v0.0.0-20180502004556-fa1af6a1f4f5/go.mod h1:SkGFH1ia65gfNATL8TAiHDNxPzPdmEL5uirI2Uyuz6c=
